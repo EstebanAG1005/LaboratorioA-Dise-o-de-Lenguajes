@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from copy import deepcopy
 import time
@@ -29,9 +30,16 @@ class Stack:
 class InvalidRegexException(Exception):
     pass
 
+    def __init__(self, message):
+        super().__init__(message)
+
 
 def reescribiendoExpr(regex):
     try:
+        if re.search(r"\s", regex):
+            raise InvalidRegexException(
+                "La expresión regular no puede contener espacios."
+            )
         regex = regex.replace("ϵ", " ")
         # definimos ϵ como vacio
         # y definimos que coloque . donde hay concatenaciones, en el resto no
@@ -41,56 +49,61 @@ def reescribiendoExpr(regex):
                 ((regex[i].isalpha() or regex[i].isdigit()) and regex[i - 1] != "(")
                 or regex[i] == "("
             ) and (regex[i - 1] != "|" or regex[i - 1] == ")"):
-
                 newExpr += "." + regex[i]
-
             else:
                 newExpr += regex[i]
         print("Reescribiendo la expresion regular: " + newExpr)
+        # compile the regular expression and catch any errors
+        re.compile(newExpr)
         return newExpr
-    except Exception as e:
-        raise InvalidRegexException(
-            "La expresión regular ingresada no es válida."
-        ) from e
+    except re.error as e:
+        error_msg = str(e)
+        if "nothing to repeat" in error_msg:
+            raise InvalidRegexException(
+                "La expresión regular contiene un operador que se repite cero veces."
+            ) from e
+        elif "unbalanced parenthesis" in error_msg:
+            raise InvalidRegexException(
+                "La expresión regular contiene paréntesis desbalanceados."
+            ) from e
+        else:
+            raise InvalidRegexException(
+                "La expresión regular ingresada no es válida."
+            ) from e
 
 
 def topostfix(regex):
-    try:
-        # definir jerarquia de simbolos
-        jerar = {}
-        jerar["+"] = 4
-        jerar["*"] = 4
-        jerar["?"] = 4
-        jerar["."] = 3
-        jerar["|"] = 2
-        jerar["("] = 1
-        lista = list(regex)
-        output = []
+    # definir jerarquia de simbolos
+    jerar = {}
+    jerar["+"] = 4
+    jerar["*"] = 4
+    jerar["?"] = 4
+    jerar["."] = 3
+    jerar["|"] = 2
+    jerar["("] = 1
+    lista = list(regex)
+    output = []
 
-        stack = Stack()
+    stack = Stack()
 
-        for item in lista:
-            if item.isalpha() or item.isdigit() or item == " ":
-                output.append(item)
-            elif item == "(":
-                stack.push(item)
-            elif item == ")":
+    for item in lista:
+        if item.isalpha() or item.isdigit() or item == " ":
+            output.append(item)
+        elif item == "(":
+            stack.push(item)
+        elif item == ")":
+            top = stack.pop()
+            while top != "(":
+                output.append(top)
                 top = stack.pop()
-                while top != "(":
-                    output.append(top)
-                    top = stack.pop()
-            else:
-                while (not stack.empty()) and (jerar[stack.peek()] >= jerar[item]):
-                    output.append(stack.pop())
-                stack.push(item)
-        while not stack.empty():
-            output.append(stack.pop())
+        else:
+            while (not stack.empty()) and (jerar[stack.peek()] >= jerar[item]):
+                output.append(stack.pop())
+            stack.push(item)
+    while not stack.empty():
+        output.append(stack.pop())
 
-        return "".join(output)
-    except Exception as e:
-        raise InvalidRegexException(
-            "La expresión regular ingresada no es válida."
-        ) from e
+    return "".join(output)
 
 
 # termina todo relacionado con postfix
@@ -363,6 +376,13 @@ def ejecutar(regex):
 
 
 # INGRESANDO EXPRESION REGULAR A TRABAJAR
-result = ejecutar("(ab)*")
+# result = ejecutar("(a+b)*")
+# result = ejecutar(")a")
+# result = ejecutar("++a")
+result = ejecutar("+a")
+# result = ejecutar("a b")
+# result = ejecutar("1++1")
 
-# result = ejecutar('b*(abb*)(a|ϵ)')
+# result = ejecutar("ab*ab*")
+
+# result = ejecutar("0?(1?)?0*")
