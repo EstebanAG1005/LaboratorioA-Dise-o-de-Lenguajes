@@ -27,6 +27,7 @@ class Stack:
         return len(self.items)
 
 
+# Clase para regresar los diferentes errores del ingreso de REGEX
 class InvalidRegexException(Exception):
     pass
 
@@ -34,6 +35,7 @@ class InvalidRegexException(Exception):
         super().__init__(message)
 
 
+# Se reescribe de la expresión para poder ser evaluada y convertida en PostFix
 def reescribiendoExpr(regex):
     try:
         if re.search(r"\s", regex):
@@ -53,7 +55,7 @@ def reescribiendoExpr(regex):
             else:
                 newExpr += regex[i]
         print("Reescribiendo la expresion regular: " + newExpr)
-        # compile the regular expression and catch any errors
+        # Compila la expresión y muestra la expresión
         re.compile(newExpr)
         return newExpr
     except re.error as e:
@@ -72,6 +74,7 @@ def reescribiendoExpr(regex):
             ) from e
 
 
+# Funcion para convertir a postfix
 def topostfix(regex):
     # definir jerarquia de simbolos
     jerar = {}
@@ -105,8 +108,6 @@ def topostfix(regex):
 
     return "".join(output)
 
-
-# termina todo relacionado con postfix
 
 # AFN
 class AFN:
@@ -143,8 +144,29 @@ class AFN:
         return object
 
 
-def to_graphviz(nfa):
+def to_graphviz_vertical(nfa):
     dot = Digraph()
+    dot.node(
+        "", style="invisible", shape="none"
+    )  # Add an empty invisible node at the start
+    for state in nfa.estados:
+        if state == nfa.estadoInicial:
+            dot.edge("", str(state), label="start")
+        elif state == nfa.estadoFinal:
+            dot.node(str(state), str(state), shape="doublecircle")
+        else:
+            dot.node(str(state), str(state))
+    for transition in nfa.transiciones:
+        for hacia in transition["hacia"]:
+            if transition["=>"] == " ":
+                dot.edge(str(transition["desde"]), str(hacia), label="ε")
+            else:
+                dot.edge(str(transition["desde"]), str(hacia), label=transition["=>"])
+    return dot
+
+
+def to_graphviz_horizontal(nfa):
+    dot = Digraph(graph_attr={"rotate": "90"})  # Set direction to left-to-right
     dot.node(
         "", style="invisible", shape="none"
     )  # Add an empty invisible node at the start
@@ -242,7 +264,6 @@ def union(nfa1, nfa2):
 
 
 def kleene(afn):
-
     nfaMain = AFN()
     nfaMain.estadoInicial = 0
     afn.estados = np.add(np.array(list(afn.estados)), 1)
@@ -295,7 +316,6 @@ def conditional(afn):
 
 # convertir postfix a AFN
 def evaluatePostfix(regex):
-    t0 = time.perf_counter()
     if len(regex) == 1:
         afn = AFN()
         afn = afn.basic(regex)
@@ -360,9 +380,8 @@ def evaluatePostfix(regex):
         f.write("\n")
         for transition in afn.transiciones:
             f.write(str(transition) + ", ")
-    t1 = time.perf_counter()
-    print("\nEl tiempo para pasar de REGEX a POSTFIX y luego a AFN es : ", t1 - t0)
-    to_graphviz(afn).render("nfa.gv", view=True)
+    to_graphviz_vertical(afn).render("nfa.gv", view=True)
+    to_graphviz_horizontal(afn).render("nfa1.gv", view=True)
     return afn
 
 
@@ -379,10 +398,10 @@ def ejecutar(regex):
 # result = ejecutar("(a+b)*")
 # result = ejecutar(")a")
 # result = ejecutar("++a")
-result = ejecutar("+a")
+# result = ejecutar("+a")
 # result = ejecutar("a b")
 # result = ejecutar("1++1")
 
 # result = ejecutar("ab*ab*")
 
-# result = ejecutar("0?(1?)?0*")
+result = ejecutar("0?(1?)?0*")
