@@ -26,57 +26,71 @@ class Stack:
         return len(self.items)
 
 
+class InvalidRegexException(Exception):
+    pass
+
+
 def reescribiendoExpr(regex):
-    regex = regex.replace("ϵ", " ")
-    # definimos ϵ como vacio
-    # y definimos que coloque . donde hay concatenaciones, en el resto no
-    newExpr = regex[0]
-    for i in range(1, len(regex)):
-        if (
-            ((regex[i].isalpha() or regex[i].isdigit()) and regex[i - 1] != "(")
-            or regex[i] == "("
-        ) and (regex[i - 1] != "|" or regex[i - 1] == ")"):
+    try:
+        regex = regex.replace("ϵ", " ")
+        # definimos ϵ como vacio
+        # y definimos que coloque . donde hay concatenaciones, en el resto no
+        newExpr = regex[0]
+        for i in range(1, len(regex)):
+            if (
+                ((regex[i].isalpha() or regex[i].isdigit()) and regex[i - 1] != "(")
+                or regex[i] == "("
+            ) and (regex[i - 1] != "|" or regex[i - 1] == ")"):
 
-            newExpr += "." + regex[i]
+                newExpr += "." + regex[i]
 
-        else:
-            newExpr += regex[i]
-    print("Reescribiendo la expresion regular: " + newExpr)
-    return newExpr
+            else:
+                newExpr += regex[i]
+        print("Reescribiendo la expresion regular: " + newExpr)
+        return newExpr
+    except Exception as e:
+        raise InvalidRegexException(
+            "La expresión regular ingresada no es válida."
+        ) from e
 
 
 def topostfix(regex):
-    # definir jerarquia de simbolos
-    jerar = {}
-    jerar["+"] = 4
-    jerar["*"] = 4
-    jerar["?"] = 4
-    jerar["."] = 3
-    jerar["|"] = 2
-    jerar["("] = 1
-    lista = list(regex)
-    output = []
+    try:
+        # definir jerarquia de simbolos
+        jerar = {}
+        jerar["+"] = 4
+        jerar["*"] = 4
+        jerar["?"] = 4
+        jerar["."] = 3
+        jerar["|"] = 2
+        jerar["("] = 1
+        lista = list(regex)
+        output = []
 
-    stack = Stack()
+        stack = Stack()
 
-    for item in lista:
-        if item.isalpha() or item.isdigit() or item == " ":
-            output.append(item)
-        elif item == "(":
-            stack.push(item)
-        elif item == ")":
-            top = stack.pop()
-            while top != "(":
-                output.append(top)
+        for item in lista:
+            if item.isalpha() or item.isdigit() or item == " ":
+                output.append(item)
+            elif item == "(":
+                stack.push(item)
+            elif item == ")":
                 top = stack.pop()
-        else:
-            while (not stack.empty()) and (jerar[stack.peek()] >= jerar[item]):
-                output.append(stack.pop())
-            stack.push(item)
-    while not stack.empty():
-        output.append(stack.pop())
+                while top != "(":
+                    output.append(top)
+                    top = stack.pop()
+            else:
+                while (not stack.empty()) and (jerar[stack.peek()] >= jerar[item]):
+                    output.append(stack.pop())
+                stack.push(item)
+        while not stack.empty():
+            output.append(stack.pop())
 
-    return "".join(output)
+        return "".join(output)
+    except Exception as e:
+        raise InvalidRegexException(
+            "La expresión regular ingresada no es válida."
+        ) from e
 
 
 # termina todo relacionado con postfix
@@ -118,15 +132,16 @@ class AFN:
 
 def to_graphviz(nfa):
     dot = Digraph()
-    dot.attr("node", shape="circle")
+    dot.node(
+        "", style="invisible", shape="none"
+    )  # Add an empty invisible node at the start
     for state in nfa.estados:
         if state == nfa.estadoInicial:
-            dot.node(str(state), str(state), shape="circle", style="bold")
+            dot.edge("", str(state), label="start")
         elif state == nfa.estadoFinal:
             dot.node(str(state), str(state), shape="doublecircle")
         else:
             dot.node(str(state), str(state))
-    dot.edge("", str(nfa.estadoInicial), label="start")
     for transition in nfa.transiciones:
         for hacia in transition["hacia"]:
             if transition["=>"] == " ":
@@ -348,6 +363,6 @@ def ejecutar(regex):
 
 
 # INGRESANDO EXPRESION REGULAR A TRABAJAR
-result = ejecutar("(b|b)*abb(a|b)*")
+result = ejecutar("(ab)*")
 
 # result = ejecutar('b*(abb*)(a|ϵ)')
