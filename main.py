@@ -381,7 +381,7 @@ def evaluatePostfix(regex):
         for transition in afn.transiciones:
             f.write(str(transition) + ", ")
     to_graphviz_vertical(afn).render("nfa.gv", view=True)
-    to_graphviz_horizontal(afn).render("nfa1.gv", view=True)
+    # to_graphviz_horizontal(afn).render("nfa1.gv", view=True)
     return afn
 
 
@@ -404,4 +404,6 @@ def ejecutar(regex):
 
 # result = ejecutar("ab*ab*")
 
-result = ejecutar("0?(1?)?0*")
+# result = ejecutar("0?(1?)?0*")
+
+result = ejecutar("(a|ϵ)*")
