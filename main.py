@@ -115,38 +115,24 @@ class AFN:
         print("transiciones:", self.transiciones)
         return object
 
-    def to_graph(self):
-        G = nx.DiGraph()
-        for state in self.estados:
-            G.add_node(state)
-        G.add_node("start")
-        G.add_node("end")
-        G.add_edge("start", self.estadoInicial)
-        G.add_edge(self.estadoFinal, "end")
-        for transition in self.transiciones:
-            for next_state in transition["hacia"]:
-                G.add_edge(transition["desde"], next_state, label=transition["=>"])
-        pos = nx.spring_layout(G)
-        labels = nx.get_edge_attributes(G, "label")
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-        nx.draw_networkx(G, pos, node_color="white", edgecolors="black", node_size=1500)
-        plt.show()
-        return G
-
 
 def to_graphviz(nfa):
     dot = Digraph()
     dot.attr("node", shape="circle")
     for state in nfa.estados:
         if state == nfa.estadoInicial:
-            dot.node(str(state), "", shape="point")
+            dot.node(str(state), str(state), shape="circle", style="bold")
         elif state == nfa.estadoFinal:
-            dot.node(str(state), "", shape="doublecircle")
+            dot.node(str(state), str(state), shape="doublecircle")
         else:
-            dot.node(str(state), "")
+            dot.node(str(state), str(state))
+    dot.edge("", str(nfa.estadoInicial), label="start")
     for transition in nfa.transiciones:
         for hacia in transition["hacia"]:
-            dot.edge(str(transition["desde"]), str(hacia), label=transition["=>"])
+            if transition["=>"] == " ":
+                dot.edge(str(transition["desde"]), str(hacia), label="ε")
+            else:
+                dot.edge(str(transition["desde"]), str(hacia), label=transition["=>"])
     return dot
 
 
@@ -348,7 +334,6 @@ def evaluatePostfix(regex):
             f.write(str(transition) + ", ")
     t1 = time.perf_counter()
     print("\nEl tiempo para pasar de REGEX a POSTFIX y luego a AFN es : ", t1 - t0)
-    afn.to_graph()
     to_graphviz(afn).render("nfa.gv", view=True)
     return afn
 
